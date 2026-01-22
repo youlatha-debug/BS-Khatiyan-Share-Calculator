@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const addOwner = () => {
     const newOwner: Owner = {
       id: Math.random().toString(36).substr(2, 9),
-      name: `Owner ${owners.length + 1}`,
+      name: `মালিক ${owners.length + 1}`,
       share: { ...INITIAL_UNITS },
       soldDecimal: 0,
       isSelling: false,
@@ -37,7 +37,7 @@ const App: React.FC = () => {
   };
 
   const resetForm = () => {
-    if (window.confirm('Are you sure you want to clear all data?')) {
+    if (window.confirm('আপনি কি নিশ্চিত যে সব তথ্য মুছে ফেলতে চান?')) {
       setTotalLandArea(0);
       setOwners([]);
       setResults(null);
@@ -72,7 +72,6 @@ const App: React.FC = () => {
       const remainingLand = Math.max(0, originalLand - soldAmount);
 
       // Recalculate Hazari based on remaining land
-      // If we want to maintain the proportion relative to original total area
       const hazariShare = (remainingLand / totalLandArea) * 1000;
       
       // Also get the remaining share in Ana/Ganda format for display
@@ -107,7 +106,8 @@ const App: React.FC = () => {
     if (!results) return null;
     const totalRemLand = results.reduce((acc, r) => acc + r.remainingLand, 0);
     const totalHazari = results.reduce((acc, r) => acc + r.hazariShare, 0);
-    return { totalRemLand, totalHazari };
+    const totalSold = results.reduce((acc, r) => acc + r.soldDecimal, 0);
+    return { totalRemLand, totalHazari, totalSold };
   }, [results]);
 
   return (
@@ -148,7 +148,7 @@ const App: React.FC = () => {
             <div className="flex flex-col justify-end">
               <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                 <p className="text-sm text-indigo-800 font-medium leading-relaxed">
-                  এখানে আপনি খতিয়ানের আনা-গন্ডা শেয়ার এবং বিক্রিত অংশ **সরাসরি শতক (Decimal)** হিসেবে ইনপুট দিতে পারবেন।
+                  এখানে আপনি খতিয়ানের আনা-গন্ডা শেয়ার এবং বিক্রিত অংশ **শতক (Decimal)** হিসেবে ইনপুট দিতে পারবেন।
                 </p>
               </div>
             </div>
@@ -220,14 +220,18 @@ const App: React.FC = () => {
             
             <div className="p-6 space-y-6">
               {/* Summary */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-green-50 border border-green-100 text-center">
-                  <p className="text-xs text-green-600 font-bold uppercase mb-1">অবশিষ্ট মোট জমি</p>
-                  <p className="text-2xl font-black text-green-900">{formatDecimal(totals?.totalRemLand || 0)} শতক</p>
+                  <p className="text-[10px] text-green-600 font-bold uppercase mb-1">অবশিষ্ট মোট জমি</p>
+                  <p className="text-xl font-black text-green-900">{formatDecimal(totals?.totalRemLand || 0)} শতক</p>
+                </div>
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-center">
+                  <p className="text-[10px] text-red-600 font-bold uppercase mb-1">মোট বিক্রিত জমি</p>
+                  <p className="text-xl font-black text-red-900">{formatDecimal(totals?.totalSold || 0)} শতক</p>
                 </div>
                 <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-center">
-                  <p className="text-xs text-blue-600 font-bold uppercase mb-1">মোট হাজারী অংশ</p>
-                  <p className="text-2xl font-black text-blue-900">{formatDecimal(totals?.totalHazari || 0, 0)} / ১০০০</p>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">মোট হাজারী অংশ</p>
+                  <p className="text-xl font-black text-blue-900">{formatDecimal(totals?.totalHazari || 0, 0)} / ১০০০</p>
                 </div>
               </div>
 
