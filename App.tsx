@@ -37,12 +37,11 @@ const App: React.FC = () => {
   };
 
   const resetForm = () => {
-    if (window.confirm('আপনি কি নিশ্চিত যে সব তথ্য মুছে ফেলতে চান?')) {
-      setTotalLandArea(0);
-      setOwners([]);
-      setResults(null);
-      setError(null);
-    }
+    // Completely wipe all state instantly
+    setTotalLandArea(0);
+    setOwners([]);
+    setResults(null);
+    setError(null);
   };
 
   const calculate = () => {
@@ -219,15 +218,15 @@ const App: React.FC = () => {
             </div>
             
             <div className="p-6 space-y-6">
-              {/* Summary */}
+              {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-green-50 border border-green-100 text-center">
                   <p className="text-[10px] text-green-600 font-bold uppercase mb-1">অবশিষ্ট মোট জমি</p>
                   <p className="text-xl font-black text-green-900">{formatDecimal(totals?.totalRemLand || 0)} শতক</p>
                 </div>
-                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-center">
-                  <p className="text-[10px] text-red-600 font-bold uppercase mb-1">মোট বিক্রিত জমি</p>
-                  <p className="text-xl font-black text-red-900">{formatDecimal(totals?.totalSold || 0)} শতক</p>
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-100 text-center">
+                  <p className="text-[10px] text-rose-600 font-bold uppercase mb-1">মোট বিক্রিত জমি</p>
+                  <p className="text-xl font-black text-rose-900">{formatDecimal(totals?.totalSold || 0)} শতক</p>
                 </div>
                 <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-center">
                   <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">মোট হাজারী অংশ</p>
@@ -235,7 +234,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Result Cards */}
+              {/* Individual Result Cards */}
               <div className="space-y-4">
                 {results.map((res) => (
                   <div key={res.ownerId} className="border border-gray-100 rounded-xl p-4 bg-gray-50 hover:bg-white transition-colors">
