@@ -23,6 +23,7 @@ export interface CalculationResult {
   soldDecimal: number;
   remainingLand: number;
   hazariShare: number;
+  relativeHazariShare: number;
   formattedShare: string;
   formattedRemainingShare: string;
 }

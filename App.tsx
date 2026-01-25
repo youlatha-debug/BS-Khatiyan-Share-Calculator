@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [results, setResults] = useState<CalculationResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hazariMode, setHazariMode] = useState<'total' | 'remaining'>('total');
 
   const addOwner = () => {
     const newOwner: Owner = {
@@ -37,7 +38,6 @@ const App: React.FC = () => {
   };
 
   const resetForm = () => {
-    // Completely wipe all state instantly
     setTotalLandArea(0);
     setOwners([]);
     setResults(null);
@@ -58,22 +58,44 @@ const App: React.FC = () => {
     }
 
     let totalOriginalTil = 0;
-
-    const calcResults: CalculationResult[] = owners.map((owner) => {
+    
+    // Step 1: Calculate basic land and remaining land for everyone
+    const tempResults = owners.map((owner) => {
       const originalTil = unitsToTil(owner.share);
       totalOriginalTil += originalTil;
 
-      // Calculate original land based on share
       const originalLand = (originalTil / TOTAL_TIL_IN_FULL_SHARE) * totalLandArea;
-      
-      // Subtract sold decimal directly from land
       const soldAmount = owner.isSelling ? owner.soldDecimal : 0;
       const remainingLand = Math.max(0, originalLand - soldAmount);
 
-      // Recalculate Hazari based on remaining land
+      return {
+        owner,
+        originalTil,
+        originalLand,
+        soldAmount,
+        remainingLand
+      };
+    });
+
+    if (totalOriginalTil > TOTAL_TIL_IN_FULL_SHARE) {
+      setError(`শেয়ারের যোগফল (${totalOriginalTil} তিল) ১৬ আনার (${TOTAL_TIL_IN_FULL_SHARE} তিল) বেশি হয়ে গেছে!`);
+      return;
+    }
+
+    const totalRemainingLandAcrossOwners = tempResults.reduce((sum, r) => sum + r.remainingLand, 0);
+
+    // Step 2: Finalize calculation results with both hazari modes
+    const calcResults: CalculationResult[] = tempResults.map((r) => {
+      const { owner, originalTil, originalLand, soldAmount, remainingLand } = r;
+
+      // Standard Hazari: based on original total land
       const hazariShare = (remainingLand / totalLandArea) * 1000;
       
-      // Also get the remaining share in Ana/Ganda format for display
+      // Relative Hazari: based on only the land that actually remains
+      const relativeHazariShare = totalRemainingLandAcrossOwners > 0 
+        ? (remainingLand / totalRemainingLandAcrossOwners) * 1000 
+        : 0;
+
       const remainingTilValue = (remainingLand / totalLandArea) * TOTAL_TIL_IN_FULL_SHARE;
       const remainingUnits = tilToUnits(Math.round(remainingTilValue));
 
@@ -85,15 +107,11 @@ const App: React.FC = () => {
         soldDecimal: soldAmount,
         remainingLand,
         hazariShare,
+        relativeHazariShare,
         formattedShare: formatLandUnits(owner.share),
         formattedRemainingShare: formatLandUnits(remainingUnits),
       };
     });
-
-    if (totalOriginalTil > TOTAL_TIL_IN_FULL_SHARE) {
-      setError(`শেয়ারের যোগফল (${totalOriginalTil} তিল) ১৬ আনার (${TOTAL_TIL_IN_FULL_SHARE} তিল) বেশি হয়ে গেছে!`);
-      return;
-    }
 
     setResults(calcResults);
     setTimeout(() => {
@@ -105,8 +123,9 @@ const App: React.FC = () => {
     if (!results) return null;
     const totalRemLand = results.reduce((acc, r) => acc + r.remainingLand, 0);
     const totalHazari = results.reduce((acc, r) => acc + r.hazariShare, 0);
+    const totalRelativeHazari = results.reduce((acc, r) => acc + r.relativeHazariShare, 0);
     const totalSold = results.reduce((acc, r) => acc + r.soldDecimal, 0);
-    return { totalRemLand, totalHazari, totalSold };
+    return { totalRemLand, totalHazari, totalRelativeHazari, totalSold };
   }, [results]);
 
   return (
@@ -212,9 +231,25 @@ const App: React.FC = () => {
 
         {/* Results Section */}
         {results && (
-          <div id="results-section" className="bg-white rounded-2xl shadow-xl border border-indigo-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-indigo-900 px-6 py-4">
+          <div id="results-section" className="bg-white rounded-2xl shadow-xl border border-indigo-100 overflow-hidden animate-results-entry">
+            <div className="bg-indigo-900 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h3 className="text-xl font-bold text-white">হিসাবের ফলাফল</h3>
+              
+              {/* Hazari Mode Toggle */}
+              <div className="bg-indigo-800 p-1 rounded-lg flex gap-1">
+                <button 
+                  onClick={() => setHazariMode('total')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${hazariMode === 'total' ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-200 hover:text-white'}`}
+                >
+                  মোট জমির ভিত্তিতে
+                </button>
+                <button 
+                  onClick={() => setHazariMode('remaining')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${hazariMode === 'remaining' ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-200 hover:text-white'}`}
+                >
+                  অবশিষ্ট জমির ভিত্তিতে
+                </button>
+              </div>
             </div>
             
             <div className="p-6 space-y-6">
@@ -229,9 +264,25 @@ const App: React.FC = () => {
                   <p className="text-xl font-black text-rose-900">{formatDecimal(totals?.totalSold || 0)} শতক</p>
                 </div>
                 <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-center">
-                  <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">মোট হাজারী অংশ</p>
-                  <p className="text-xl font-black text-blue-900">{formatDecimal(totals?.totalHazari || 0, 0)} / ১০০০</p>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">
+                    মোট হাজারী ({hazariMode === 'total' ? 'খতিয়ান' : 'অবশিষ্ট'})
+                  </p>
+                  <p className="text-xl font-black text-blue-900">
+                    {formatDecimal(hazariMode === 'total' ? (totals?.totalHazari || 0) : (totals?.totalRelativeHazari || 0), 0)} / ১০০০
+                  </p>
                 </div>
+              </div>
+
+              {/* Information Alert */}
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-center gap-3">
+                <div className="text-amber-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <p className="text-xs text-amber-800 font-medium">
+                  {hazariMode === 'total' 
+                    ? "হাজারী হিস্যা খতিয়ানের মূল ১০০% জমির সাপেক্ষে দেখানো হচ্ছে।" 
+                    : "হাজারী হিস্যা বর্তমানে অবশিষ্ট থাকা মোট জমির (১০০%) সাপেক্ষে সমন্বয় করা হয়েছে।"}
+                </p>
               </div>
 
               {/* Individual Result Cards */}
@@ -241,14 +292,14 @@ const App: React.FC = () => {
                     <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
                       <h4 className="text-lg font-bold text-indigo-900">{res.ownerName}</h4>
                       <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
-                        হাজারী শেয়ার: {formatDecimal(res.hazariShare, 3)}
+                        হাজারী: {formatDecimal(hazariMode === 'total' ? res.hazariShare : res.relativeHazariShare, 3)}
                       </span>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">মূল অংশ:</span>
+                          <span className="text-gray-500">মূল খতিয়ান অংশ:</span>
                           <span className="font-semibold">{res.formattedShare}</span>
                         </div>
                         <div className="flex justify-between text-sm">
