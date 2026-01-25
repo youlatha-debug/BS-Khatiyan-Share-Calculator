@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [results, setResults] = useState<CalculationResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [hazariMode, setHazariMode] = useState<'total' | 'remaining'>('total');
 
   const addOwner = () => {
@@ -42,10 +43,12 @@ const App: React.FC = () => {
     setOwners([]);
     setResults(null);
     setError(null);
+    setWarning(null);
   };
 
   const calculate = () => {
     setError(null);
+    setWarning(null);
 
     if (totalLandArea <= 0) {
       setError('দয়া করে খতিয়ানের মোট জমি সঠিকভাবে লিখুন।');
@@ -77,9 +80,9 @@ const App: React.FC = () => {
       };
     });
 
+    // Check for warning instead of blocking error
     if (totalOriginalTil > TOTAL_TIL_IN_FULL_SHARE) {
-      setError(`শেয়ারের যোগফল (${totalOriginalTil} তিল) ১৬ আনার (${TOTAL_TIL_IN_FULL_SHARE} তিল) বেশি হয়ে গেছে!`);
-      return;
+      setWarning(`সতর্কতা: শেয়ারের যোগফল ১৬ আনার (${TOTAL_TIL_IN_FULL_SHARE} তিল) চেয়ে বেশি (${totalOriginalTil} তিল) হয়েছে।`);
     }
 
     const totalRemainingLandAcrossOwners = tempResults.reduce((sum, r) => sum + r.remainingLand, 0);
@@ -222,12 +225,19 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center gap-3">
-            <p className="text-red-700 font-medium">{error}</p>
-          </div>
-        )}
+        {/* Error/Warning Messages */}
+        <div className="space-y-2">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center gap-3">
+              <p className="text-red-700 font-medium">{error}</p>
+            </div>
+          )}
+          {warning && (
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md flex items-center gap-3">
+              <p className="text-amber-700 font-medium">{warning}</p>
+            </div>
+          )}
+        </div>
 
         {/* Results Section */}
         {results && (
